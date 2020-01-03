@@ -88,3 +88,151 @@ model.summary()
 # Bidirectional LSTM layer 2 Param #: 2 * {4 * [(128 + 32) * 32 + 32]}
 
 # Performance optimization and CuDNN kernels in TensorFlow 2.0
+# Using CuDNN kernels when available
+batch_size = 64
+# Each MNIST image batch is a tensor of shape (batch_size, 28, 28).
+# Each input sequence will be of size (28, 28) (height is treated like time).
+input_dim = 28
+
+units = 64
+output_size = 10  # labels are from 0 to 9
+
+
+# Build the RNN model
+def build_model(allow_cudnn_kernel=True):
+    # CuDNN is only available at the layer level, and not at the cell level.
+    # This means `LSTM(units)` will use the CuDNN kernel,
+    # while RNN(LSTMCell(units)) will run on non-CuDNN kernel.
+    if allow_cudnn_kernel:
+        # The LSTM layer with default options uses CuDNN.
+        lstm_layer_ = tf.keras.layers.LSTM(units, input_shape=(None, input_dim))
+    else:
+        # Wrapping a LSTMCell in a RNN layer will not use CuDNN.
+        lstm_layer_ = tf.keras.layers.RNN(
+            tf.keras.layers.LSTMCell(units),
+            input_shape=(None, input_dim))
+    model_ = tf.keras.models.Sequential([
+        lstm_layer_,
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Dense(output_size, activation='softmax')]
+    )
+    return model_
+
+
+# Load MNIST dataset
+mnist = tf.keras.datasets.mnist
+
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train, x_test = x_train / 255.0, x_test / 255.0
+sample, sample_label = x_train[0], y_train[0]
+
+# Create a model instance and compile it
+model = build_model(allow_cudnn_kernel=True)
+
+model.compile(loss='sparse_categorical_crossentropy',
+              optimizer='sgd',
+              metrics=['accuracy'])
+
+model.fit(x_train, y_train,
+          validation_data=(x_test, y_test),
+          batch_size=batch_size,
+          epochs=5)
+
+# Build a new model without CuDNN kernel
+slow_model = build_model(allow_cudnn_kernel=False)
+slow_model.set_weights(model.get_weights())
+slow_model.compile(loss='sparse_categorical_crossentropy',
+                   optimizer='sgd',
+                   metrics=['accuracy'])
+slow_model.fit(x_train, y_train,
+               validation_data=(x_test, y_test),
+               batch_size=batch_size,
+               epochs=1)  # We only train for one epoch because it's slower.
+
+with tf.device('CPU:0'):
+    cpu_model = build_model(allow_cudnn_kernel=True)
+    cpu_model.set_weights(model.get_weights())
+    result = tf.argmax(cpu_model.predict_on_batch(tf.expand_dims(sample, 0)), axis=1)
+    print('Predicted result is: %s, target result is: %s' % (result.numpy(), sample_label))
+    plt.imshow(sample, cmap=plt.get_cmap('gray'))
+    plt.show()
+
+# RNNs with list/dict inputs, or nested inputs
+# Define a custom cell that support nested input/output
+NestedInput = collections.namedtuple('NestedInput', ['feature1', 'feature2'])
+NestedState = collections.namedtuple('NestedState', ['state1', 'state2'])
+
+
+class NestedCell(tf.keras.layers.Layer):
+
+    def __init__(self, unit_1_, unit_2_, unit_3_, **kwargs):
+        self.unit_1 = unit_1_
+        self.unit_2 = unit_2_
+        self.unit_3 = unit_3_
+        self.state_size = NestedState(state1=unit_1_,
+                                      state2=tf.TensorShape([unit_2_, unit_3_]))
+        self.output_size = (unit_1_, tf.TensorShape([unit_2_, unit_3_]))
+        super(NestedCell, self).__init__(**kwargs)
+
+    def build(self, input_shapes):
+        # expect input_shape to contain 2 items, [(batch, i1), (batch, i2, i3)]
+        input_1_ = input_shapes.feature1[1]
+        input_2_, input_3_ = input_shapes.feature2[1:]
+
+        self.kernel_1 = self.add_weight(
+            shape=(input_1_, self.unit_1), initializer='uniform', name='kernel_1')
+        self.kernel_2_3 = self.add_weight(
+            shape=(input_2_, input_3_, self.unit_2, self.unit_3),
+            initializer='uniform',
+            name='kernel_2_3')
+
+    def call(self, inputs, states):
+        # inputs should be in [(batch, input_1), (batch, input_2, input_3)]
+        # state should be in shape [(batch, unit_1), (batch, unit_2, unit_3)]
+        input_1_, input_2_ = tf.nest.flatten(inputs)
+        s1, s2 = states
+
+        output_1 = tf.matmul(input_1_, self.kernel_1)
+        output_2_3 = tf.einsum('bij,ijkl->bkl', input_2_, self.kernel_2_3)
+        state_1 = s1 + output_1
+        state_2_3 = s2 + output_2_3
+
+        output_ = [output_1, output_2_3]
+        new_states = NestedState(state1=state_1, state2=state_2_3)
+
+        return output_, new_states
+
+
+# Build a RNN model with nested input/output
+unit_1 = 10
+unit_2 = 20
+unit_3 = 30
+
+input_1 = 32
+input_2 = 64
+input_3 = 32
+batch_size = 64
+num_batch = 100
+timestep = 50
+
+cell = NestedCell(unit_1, unit_2, unit_3)
+rnn = tf.keras.layers.RNN(cell)
+
+inp_1 = tf.keras.Input((None, input_1))
+inp_2 = tf.keras.Input((None, input_2, input_3))
+
+outputs = rnn(NestedInput(feature1=inp_1, feature2=inp_2))
+
+model = tf.keras.models.Model([inp_1, inp_2], outputs)
+
+model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+
+# Train the model with randomly generated data
+input_1_data = np.random.random((batch_size * num_batch, timestep, input_1))
+input_2_data = np.random.random((batch_size * num_batch, timestep, input_2, input_3))
+target_1_data = np.random.random((batch_size * num_batch, unit_1))
+target_2_data = np.random.random((batch_size * num_batch, unit_2, unit_3))
+input_data = [input_1_data, input_2_data]
+target_data = [target_1_data, target_2_data]
+
+model.fit(input_data, target_data, batch_size=batch_size)
