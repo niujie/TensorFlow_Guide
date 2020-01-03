@@ -10,3 +10,13 @@
 /Keras/mymodel_2.h5
 /Keras/mymodel_3.h5
 /Keras/.ipynb_checkpoints/
+/Keras/path_to_saved_model/
+/Keras/checkpoint
+/Keras/model_config.json
+/Keras/path_to_my_tf_checkpoint.data-00000-of-00002
+/Keras/path_to_my_tf_checkpoint.data-00001-of-00002
+/Keras/path_to_my_tf_checkpoint.index
+/Keras/path_to_my_weights.data-00000-of-00002
+/Keras/path_to_my_weights.data-00001-of-00002
+/Keras/path_to_my_weights.h5
+/Keras/path_to_my_weights.index
