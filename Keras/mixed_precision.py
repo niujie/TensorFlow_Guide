@@ -8,8 +8,8 @@ from tensorflow.keras import layers
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 # Setting the dtype policy
-policy = mixed_precision.Policy('mixed_float16')
-# policy = mixed_precision.Policy('float32')
+# policy = mixed_precision.Policy('mixed_float16')
+policy = mixed_precision.Policy('float32')
 mixed_precision.set_policy(policy)
 
 print('Compute dtype: %s' % policy.compute_dtype)
