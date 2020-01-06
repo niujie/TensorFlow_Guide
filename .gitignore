@@ -31,3 +31,13 @@
 /Data_input_pipelines/missing.csv
 /Customization/weights.data-00001-of-00002
 /Customization/weights.data-00000-of-00002
+/.ipynb_checkpoints/
+/Save_a_model/.ipynb_checkpoints/
+/Save_a_model/tf_ckpts/
+/Save_a_model/tf_estimator_example/
+/Save_a_model/checkpoint
+/Save_a_model/easy_checkpoint.data-00000-of-00001
+/Save_a_model/easy_checkpoint.index
+/Save_a_model/tf_list_example-1.data-00000-of-00002
+/Save_a_model/tf_list_example-1.data-00001-of-00002
+/Save_a_model/tf_list_example-1.index
