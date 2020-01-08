@@ -47,3 +47,5 @@
 /Save_a_model/pow/
 /Save_a_model/saved/
 /Accelerators/.ipynb_checkpoints/
+*.xml
+*.iml
