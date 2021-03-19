@@ -47,5 +47,12 @@
 /Save_a_model/pow/
 /Save_a_model/saved/
 /Accelerators/.ipynb_checkpoints/
+/TensorFlow_2/.ipynb_checkpoints/
+/TensorFlow_2/ckpt/
+/TensorFlow_2/checkpoint
+/TensorFlow_2/path_to_model_dir/
+/TensorFlow_2/tb/
+/TensorFlow_2/weights*
+/.vscode
 *.xml
 *.iml
