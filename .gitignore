@@ -50,9 +50,13 @@
 /TensorFlow_2/.ipynb_checkpoints/
 /TensorFlow_2/ckpt/
 /TensorFlow_2/checkpoint
+/TensorFlow_2/my_checkpoint*
 /TensorFlow_2/path_to_model_dir/
 /TensorFlow_2/tb/
 /TensorFlow_2/weights*
+/TensorFlow_2/logs/
+/TensorFlow_2/the_saved_model/
+/TensorFlow_2/exname_of_file/
 /.vscode
 *.xml
 *.iml
